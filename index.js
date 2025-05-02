@@ -6,7 +6,10 @@ const { chromium } = require('playwright');
 const app = express();
 app.use(express.json());
 
+// Route principale pour exécuter le script
 app.post('/run', async (req, res) => {
+    console.log("📩 Requête reçue :", req.body);
+
     const { template, citations } = req.body;
 
     // Définir les URLs des templates
@@ -46,43 +49,39 @@ app.post('/run', async (req, res) => {
         page.setDefaultTimeout(180000); // Augmente le délai global
 
         console.log("🌐 Connexion à Canva...");
-        await page.goto(templateUrl, { timeout: 180000 }); // Augmente le délai ici aussi
+        await page.goto(templateUrl, { timeout: 180000 });
         console.log("✅ Navigation effectuée, attente de l'état 'networkidle'...");
-        await page.waitForLoadState('networkidle', { timeout: 180000 }); // Attendre le chargement complet
-
-        // Gérer la pop-up Jump back in!
-        if (await page.locator(`button:has-text("${process.env.GOOGLE_EMAIL}")`).isVisible()) {
-            console.log("ℹ️ Pop-up 'Jump back in!' détectée, fermeture...");
-            await page.click(`button:has-text("${process.env.GOOGLE_EMAIL}")`);
-        }
-
-        if (!storageStateExists) {
-            console.log("🔑 Aucun état de session trouvé, connexion requise");
-            // Connexion à Canva ici...
-        }
+        await page.waitForLoadState('networkidle', { timeout: 180000 });
 
         console.log(`✍️ Ajout des citations (${citations.length})`);
         for (let i = 0; i < citations.length; i++) {
-            await page.waitForTimeout(Math.random() * 2000 + 1000); // Délai aléatoire
+            console.log(`💡 Ajout de la citation n°${i + 1}: ${citations[i]}`);
+            await page.waitForTimeout(Math.random() * 2000 + 1000);
             const textBox = await page.waitForSelector('[data-testid="text-box"]', { timeout: 60000 });
             await textBox.click();
             await page.keyboard.type(citations[i], { delay: 100 });
-            console.log(`✅ Citation ${i + 1}/${citations.length} ajoutée : ${citations[i]}`);
+            console.log(`✅ Citation ${i + 1} ajoutée.`);
         }
 
         res.send('✅ Citations ajoutées au template Canva');
     } catch (err) {
-        console.error('❌ Erreur Playwright :', err);
+        console.error("❌ Erreur pendant l'exécution :", err);
         res.status(500).send('Erreur d’exécution du script');
     } finally {
-        // Arrêter et sauvegarder le traçage
-        console.log("🛑 Arrêt du traçage...");
-        await context.tracing.stop({ path: 'trace.zip' });
-        console.log("✅ Traçage sauvegardé dans trace.zip");
+        try {
+            // Arrêter et sauvegarder le traçage
+            console.log("🛑 Arrêt du traçage...");
+            await context.tracing.stop({ path: 'trace.zip' });
+            console.log("✅ Traçage sauvegardé dans trace.zip");
+        } catch (traceErr) {
+            console.error("❌ Erreur lors de l'arrêt du traçage :", traceErr);
+        }
+
         await browser.close();
         console.log("🖐️ Navigateur fermé.");
     }
 });
 
+// Démarrer le serveur
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
