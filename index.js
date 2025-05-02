@@ -1,16 +1,17 @@
 // index.js
 const express = require('express');
 const { chromium } = require('playwright');
-const app = express();
+require('dotenv').config();
 
+const app = express();
 app.use(express.json());
 
 app.post('/run', async (req, res) => {
   const { template, citations } = req.body;
 
   const templates = {
-    intro: 'https://www.canva.com/design/your_intro_template_url',
-    outro: 'https://www.canva.com/design/your_outro_template_url'
+    intro: 'https://www.canva.com/design/TON_TEMPLATE_INTRO',
+    outro: 'https://www.canva.com/design/TON_TEMPLATE_OUTRO'
     // Ajoute ici d'autres templates si besoin
   };
 
@@ -40,9 +41,9 @@ app.post('/run', async (req, res) => {
     await page.goto(templateUrl);
     await page.waitForTimeout(5000);
 
-    // Insérer les citations dynamiques (ajuste les sélecteurs si nécessaire)
+    // Insérer les citations dynamiques
     for (let i = 0; i < citations.length; i++) {
-      await page.click('[data-testid="text-box"]');
+      await page.click('[data-testid="text-box"]'); // à adapter si nécessaire
       await page.keyboard.type(citations[i]);
       await page.keyboard.press('Tab');
     }
@@ -56,7 +57,7 @@ app.post('/run', async (req, res) => {
     res.send('✅ Citations appliquées et vidéo exportée');
   } catch (err) {
     console.error('❌ Erreur :', err);
-    res.status(500).send('Erreur lors de l'exécution du script.');
+    res.status(500).send('Erreur lors de l\'exécution du script.');
   } finally {
     await browser.close();
   }
