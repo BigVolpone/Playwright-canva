@@ -1,7 +1,8 @@
 // index.js
 const express = require('express');
 const { chromium } = require('playwright');
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -9,11 +10,14 @@ app.use(express.json());
 app.post('/run', async (req, res) => {
   const { template, citations, templateUrls } = req.body;
 
-  if (!template || !citations || !Array.isArray(citations) || !templateUrls || !templateUrls[template]) {
-    return res.status(400).send('❌ Requête invalide. Assure-toi d’envoyer: template, citations[], templateUrls.{template}.');
+  if (!template || !templateUrls || !templateUrls[template]) {
+    return res.status(400).send({ error: 'Template inconnu ou URL manquante' });
   }
 
-  const templateUrl = templateUrls[template];
+  if (!Array.isArray(citations) || citations.length === 0) {
+    return res.status(400).send({ error: 'Aucune citation fournie' });
+  }
+
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -26,14 +30,14 @@ app.post('/run', async (req, res) => {
     await page.click('button[type="submit"]');
     await page.waitForNavigation();
 
-    // Aller au template spécifique
-    await page.goto(templateUrl);
+    // Accéder au template
+    await page.goto(templateUrls[template]);
     await page.waitForTimeout(5000);
 
-    // Ajouter les citations dynamiquement (exemple générique, à adapter au template exact)
-    for (let citation of citations) {
+    // Injecter les citations (ex: 3 blocs texte à remplir)
+    for (let i = 0; i < citations.length; i++) {
       await page.click('[data-testid="text-box"]');
-      await page.keyboard.type(citation);
+      await page.keyboard.type(citations[i]);
       await page.keyboard.press('Tab');
     }
 
@@ -43,14 +47,16 @@ app.post('/run', async (req, res) => {
     await page.click('button:has-text("Télécharger")');
     await page.waitForTimeout(10000);
 
-    res.send('✅ Script exécuté avec succès');
+    res.send('✅ Vidéo générée avec succès');
   } catch (err) {
     console.error('❌ Erreur :', err);
-    res.status(500).send('Erreur lors de l’exécution du script.');
+    res.status(500).send('Erreur lors de l\'exécution du script.');
   } finally {
     await browser.close();
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur actif sur le port ${PORT}`);
+});
