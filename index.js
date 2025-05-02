@@ -1,8 +1,6 @@
-// index.js
 const express = require('express');
 const { chromium } = require('playwright');
-const dotenv = require('dotenv');
-dotenv.config();
+require('dotenv').config();
 
 const app = express();
 app.use(express.json());
@@ -10,12 +8,14 @@ app.use(express.json());
 app.post('/run', async (req, res) => {
   const { template, citations, templateUrls } = req.body;
 
-  if (!template || !templateUrls || !templateUrls[template]) {
-    return res.status(400).send({ error: 'Template inconnu ou URL manquante' });
+  if (!template || !citations || !Array.isArray(citations)) {
+    return res.status(400).send('❌ Données manquantes ou mal formatées.');
   }
 
-  if (!Array.isArray(citations) || citations.length === 0) {
-    return res.status(400).send({ error: 'Aucune citation fournie' });
+  const templateUrl = templateUrls?.[template];
+
+  if (!templateUrl) {
+    return res.status(400).send(`❌ URL introuvable pour le template : ${template}`);
   }
 
   const browser = await chromium.launch({ headless: true });
@@ -30,33 +30,30 @@ app.post('/run', async (req, res) => {
     await page.click('button[type="submit"]');
     await page.waitForNavigation();
 
-    // Accéder au template
-    await page.goto(templateUrls[template]);
-    await page.waitForTimeout(5000);
+    // Charger le template
+    await page.goto(templateUrl);
+    await page.waitForTimeout(6000); // Laisse le temps au template de charger
 
-    // Injecter les citations (ex: 3 blocs texte à remplir)
+    // Insérer les citations
     for (let i = 0; i < citations.length; i++) {
-      await page.click('[data-testid="text-box"]');
+      await page.click('[data-testid="text-box"]'); // À ajuster selon ton template
       await page.keyboard.type(citations[i]);
-      await page.keyboard.press('Tab');
+      await page.keyboard.press('Tab'); // Pour passer au champ suivant
     }
 
-    // Exporter
+    // Télécharger
     await page.click('button:has-text("Partager")');
-    await page.click('button:has-text("Télécharger")');
     await page.click('button:has-text("Télécharger")');
     await page.waitForTimeout(10000);
 
-    res.send('✅ Vidéo générée avec succès');
+    res.send('✅ Script exécuté avec succès !');
   } catch (err) {
-    console.error('❌ Erreur :', err);
-    res.status(500).send('Erreur lors de l\'exécution du script.');
+    console.error('Erreur Playwright :', err);
+    res.status(500).send('❌ Erreur d\'exécution Playwright.');
   } finally {
     await browser.close();
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur actif sur le port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
