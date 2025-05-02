@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/run', async (req, res) => {
-  const { template, citation1, citation2, citation3 } = req.body;
+  const { template, citations } = req.body;
 
   const templates = {
     intro: 'https://www.canva.com/design/your_intro_template_url',
@@ -18,6 +18,10 @@ app.post('/run', async (req, res) => {
 
   if (!templateUrl) {
     return res.status(400).send('Template inconnu');
+  }
+
+  if (!Array.isArray(citations) || citations.length === 0) {
+    return res.status(400).send('Aucune citation fournie');
   }
 
   const browser = await chromium.launch({ headless: true });
@@ -36,13 +40,12 @@ app.post('/run', async (req, res) => {
     await page.goto(templateUrl);
     await page.waitForTimeout(5000);
 
-    // Insérer les citations (ajuste les sélecteurs si nécessaire)
-    await page.click('[data-testid="text-box"]');
-    await page.keyboard.type(citation1);
-    await page.keyboard.press('Tab');
-    await page.keyboard.type(citation2);
-    await page.keyboard.press('Tab');
-    await page.keyboard.type(citation3);
+    // Insérer les citations dynamiques (ajuste les sélecteurs si nécessaire)
+    for (let i = 0; i < citations.length; i++) {
+      await page.click('[data-testid="text-box"]');
+      await page.keyboard.type(citations[i]);
+      await page.keyboard.press('Tab');
+    }
 
     // Exporter la vidéo
     await page.click('button:has-text("Partager")');
@@ -50,7 +53,7 @@ app.post('/run', async (req, res) => {
     await page.click('button:has-text("Télécharger")');
     await page.waitForTimeout(10000);
 
-    res.send('✅ Citation appliquée et vidéo exportée');
+    res.send('✅ Citations appliquées et vidéo exportée');
   } catch (err) {
     console.error('❌ Erreur :', err);
     res.status(500).send('Erreur lors de l'exécution du script.');
