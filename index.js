@@ -29,16 +29,18 @@ app.post('/run', async (req, res) => {
     storageStateExists ? { storageState: storageStatePath } : {}
   );
 
+  // **Démarrer le traçage**
+  await context.tracing.start({ screenshots: true, snapshots: true });
+
   const page = await context.newPage();
 
   try {
-    page.setDefaultTimeout(120000); // Augmente le délai global
+    page.setDefaultTimeout(180000); // Augmente le délai global
 
     console.log('🌐 Connexion à Canva…');
-    await page.goto(templateUrl, { timeout: 120000 }); // Augmente le délai ici aussi
-
-    console.log('✅ Page Canva chargée.');
-    await page.waitForLoadState('networkidle', { timeout: 120000 }); // Attendre le chargement complet
+    await page.goto(templateUrl, { timeout: 180000 }); // Augmente le délai ici aussi
+    console.log("✅ Navigation effectuée, attente de l'état 'networkidle'…");
+    await page.waitForLoadState('networkidle', { timeout: 180000 }); // Attendre le chargement complet
 
     // Gérer la pop-up Jump back in!
     if (await page.locator(`button:has-text("${process.env.GOOGLE_EMAIL}")`).isVisible()) {
@@ -64,12 +66,10 @@ app.post('/run', async (req, res) => {
   } catch (err) {
     console.error('❌ Erreur Playwright :', err);
 
-    // Vérifiez si un traçage est démarré
-    if (context.tracing) {
-      await context.tracing.stop({ path: 'trace.zip' });
-    }
     res.status(500).send('Erreur d’exécution du script');
   } finally {
+    // **Arrêter et sauvegarder le traçage**
+    await context.tracing.stop({ path: 'trace.zip' });
     await browser.close();
   }
 });
