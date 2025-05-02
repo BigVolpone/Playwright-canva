@@ -29,16 +29,9 @@ app.post('/run', async (req, res) => {
     storageStateExists ? { storageState: storageStatePath } : {}
   );
 
-  // Masquer les automatisations (corrigé pour utiliser le contexte)
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-    window.navigator.chrome = {};
-  });
-
   const page = await context.newPage();
 
   try {
-    // Timeout global
     page.setDefaultTimeout(60000);
 
     console.log('🌐 Connexion à Canva…');
@@ -46,7 +39,10 @@ app.post('/run', async (req, res) => {
 
     if (!storageStateExists) {
       console.log('🔑 Aucun état de session trouvé, connexion requise');
-      await page.click('text=Inscrire', { timeout: 60000 });
+
+      // Sélecteur corrigé pour le bouton "S'inscrire"
+      await page.click('text="S\'inscrire"', { timeout: 60000 });
+
       await page.waitForSelector('text=Continuer avec un e-mail', { timeout: 60000 });
       await page.click('text=Continuer avec un e-mail');
 
