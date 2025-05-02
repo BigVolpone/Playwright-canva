@@ -1,7 +1,7 @@
 {
   "name": "playwright-canva-server",
   "version": "1.0.0",
-  "description": "Serveur Express pour automatiser l’injection de citations dans Canva via Playwright",
+  "description": "Automatisation Canva avec Playwright",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
