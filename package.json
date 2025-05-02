@@ -1,13 +1,14 @@
 {
   "name": "playwright-canva",
   "version": "1.0.0",
-  "description": "Automatisation Canva avec Playwright",
+  "description": "Automatisation Playwright pour Canva",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "postinstall": "npx playwright install --with-deps"
   },
   "dependencies": {
-  "playwright": "^1.42.0",
-  "dotenv": "^16.3.1"
+    "dotenv": "^16.0.3",
+    "playwright": "^1.43.1"
   }
 }
