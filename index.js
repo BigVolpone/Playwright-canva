@@ -1,81 +1,80 @@
 // index.js
-require("dotenv").config();
-const { chromium } = require("playwright");
-const express = require("express");
-const bodyParser = require("body-parser");
-
+require('dotenv').config();
+const express = require('express');
+const { chromium } = require('playwright');
 const app = express();
-app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 8080;
+app.use(express.json());
 
-const templates = {
-  A: process.env.TEMPLATE_A_URL,
-  B: process.env.TEMPLATE_B_URL,
-  C: process.env.TEMPLATE_C_URL,
-};
-
-app.post("/run", async (req, res) => {
+app.post('/run', async (req, res) => {
   const { template, citations } = req.body;
 
-  console.log("📩 Requête reçue avec template:", template);
-  console.log("🧠 Citations reçues:", citations);
+  const templates = {
+    A: process.env.TEMPLATE_A_URL,
+    B: process.env.TEMPLATE_B_URL,
+    C: process.env.TEMPLATE_C_URL
+    // Tu peux ajouter plus de templates ici si besoin
+  };
 
   const templateUrl = templates[template];
-
   if (!templateUrl) {
-    console.error("❌ Template inconnu");
-    return res.status(400).send("Template inconnu");
+    return res.status(400).send('❌ Template inconnu');
+  }
+  if (!Array.isArray(citations) || citations.length === 0) {
+    return res.status(400).send('❌ Aucune citation fournie');
   }
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext(); // Nouvelle session propre
+  const context = await browser.newContext();
   const page = await context.newPage();
 
   try {
-    console.log("🌐 Connexion à Canva...");
-    await page.goto("https://www.canva.com/fr_fr/", { timeout: 60000 });
-    await page.waitForLoadState("domcontentloaded");
+    console.log(`📩 Requête reçue avec template: ${template}`);
+    console.log(`🧠 Citations reçues:`, citations);
 
-    await page.click("text=Se connecter", { timeout: 15000 });
+    await page.goto('https://www.canva.com/fr_fr/', { timeout: 60000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(3000);
 
-    // ➤ Connexion par email uniquement
-    await page.click("text=Continuer avec un e-mail", { timeout: 15000 });
-    await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+    await page.click('text=Se connecter');
+    await page.waitForTimeout(2000);
+
+    await page.click('text=Continuer avec un e-mail');
+    await page.waitForTimeout(2000);
+
     await page.fill('input[type="email"]', process.env.CANVA_EMAIL);
-    await page.click("text=Continuer", { timeout: 15000 });
+    await page.click('button:has-text("Continuer")');
+    await page.waitForTimeout(2000);
 
-    await page.waitForSelector('input[type="password"]', { timeout: 15000 });
     await page.fill('input[type="password"]', process.env.CANVA_PASSWORD);
-    await page.click("text=Connexion", { timeout: 15000 });
+    await page.click('button:has-text("Connexion")');
+    await page.waitForTimeout(5000);
 
-    await page.waitForTimeout(5000); // attente post-connexion
-
-    console.log("🔗 Accès au template");
     await page.goto(templateUrl, { timeout: 60000 });
-
-    await page.waitForTimeout(5000); // temps de chargement
+    await page.waitForTimeout(5000);
 
     for (let i = 0; i < citations.length; i++) {
-      const citation = citations[i];
-      const frame = page.frames()[0];
-      const textBox = `input[placeholder*='Votre texte ici']`;
-
-      await frame.waitForSelector(textBox, { timeout: 15000 });
-      await frame.fill(textBox, citation);
-      await page.waitForTimeout(2000);
+      await page.click('[data-testid="text-box"]');
+      await page.keyboard.type(citations[i]);
+      await page.keyboard.press('Tab');
+      await page.waitForTimeout(1000);
     }
 
-    console.log("✅ Citations insérées !");
-    await browser.close();
-    res.send("Succès");
+    await page.click('button:has-text("Partager")');
+    await page.waitForTimeout(1000);
+    await page.click('button:has-text("Télécharger")');
+    await page.waitForTimeout(1000);
+    await page.click('button:has-text("Télécharger")');
+    await page.waitForTimeout(10000);
+
+    res.send('✅ Citations appliquées et vidéo exportée');
   } catch (err) {
-    console.error("❌ Erreur :", err);
+    console.error('❌ Erreur :', err);
+    res.status(500).send('Erreur lors de l\'exécution du script.');
+  } finally {
     await browser.close();
-    res.status(500).send("Erreur lors de l'exécution du script.");
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur actif sur le port ${PORT}`);
-});
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
