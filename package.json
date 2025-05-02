@@ -5,11 +5,27 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "postinstall": "npx playwright install --with-deps"
+    "dev": "nodemon index.js", // Ajout pour le développement avec rechargement automatique
+    "postinstall": "npx playwright install --with-deps",
+    "test": "echo \"Error: no test specified\" && exit 1" // Placeholder pour les tests
   },
   "dependencies": {
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
     "playwright": "^1.43.1"
-  }
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22" // Ajout de nodemon pour améliorer le flux de développement
+  },
+  "engines": {
+    "node": ">=14.0.0" // Spécification de la version minimale de Node.js
+  },
+  "keywords": [
+    "playwright",
+    "canva",
+    "automation",
+    "express"
+  ],
+  "author": "BigVolpone",
+  "license": "MIT"
 }
