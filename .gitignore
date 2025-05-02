@@ -1,2 +1,30 @@
-.env
+# Node.js
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environnement
+.env
+
+# Logs
+logs/
+*.log
+logs/*.log
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Dépendances Playwright
+playwright-report/
+test-results/
+
+# IDE/Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Autres fichiers et dossiers spécifiques
+state.json
