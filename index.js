@@ -1,5 +1,12 @@
+require('dotenv').config();
 const fs = require('fs');
+const express = require('express');
 const { chromium } = require('playwright');
+
+// Initialisation de l'application Express
+const app = express();
+
+app.use(express.json());
 
 app.post('/run', async (req, res) => {
   const { template, citations } = req.body;
@@ -8,7 +15,7 @@ app.post('/run', async (req, res) => {
     A: process.env.TEMPLATE_A_URL,
     B: process.env.TEMPLATE_B_URL,
     C: process.env.TEMPLATE_C_URL,
-    D: process.env.TEMPLATE_D_URL
+    D: process.env.TEMPLATE_D_URL,
   };
 
   const templateUrl = templates[template];
@@ -17,7 +24,7 @@ app.post('/run', async (req, res) => {
   if (!Array.isArray(citations) || citations.length === 0)
     return res.status(400).send('❌ Aucune citation fournie');
 
-  // Check if state.json exists
+  // Vérification du fichier state.json
   const storageStatePath = 'state.json';
   const storageStateExists = fs.existsSync(storageStatePath);
 
@@ -31,7 +38,7 @@ app.post('/run', async (req, res) => {
     console.log('🌐 Connexion à Canva…');
     await page.goto(templateUrl, { timeout: 60000 });
 
-    // If state.json is missing, perform login
+    // Connexion si le fichier state.json est absent
     if (!storageStateExists) {
       console.log('🔑 Aucun état de session trouvé, connexion requise');
       await page.click('text=Inscrire');
@@ -44,7 +51,7 @@ app.post('/run', async (req, res) => {
       await page.click('text=Connexion');
       console.log('✅ Connexion réussie');
 
-      // Save the session state
+      // Sauvegarde de l'état de session
       await context.storageState({ path: storageStatePath });
       console.log('✅ État de session sauvegardé');
     }
@@ -66,3 +73,7 @@ app.post('/run', async (req, res) => {
     await browser.close();
   }
 });
+
+// Définition du port
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
