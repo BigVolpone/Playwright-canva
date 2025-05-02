@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const { chromium } = require('playwright');
 require('dotenv').config();
@@ -36,10 +35,15 @@ app.post('/run', async (req, res) => {
   try {
     console.log("🌐 Connexion à Canva...");
     await page.goto('https://www.canva.com/login');
+
+    await page.waitForSelector('input[name="email"]', { timeout: 15000 });
     await page.fill('input[name="email"]', process.env.CANVA_EMAIL);
+
+    await page.waitForSelector('input[name="password"]', { timeout: 15000 });
     await page.fill('input[name="password"]', process.env.CANVA_PASSWORD);
+
     await page.click('button[type="submit"]');
-    await page.waitForNavigation({ timeout: 15000 });
+    await page.waitForNavigation({ timeout: 20000 });
 
     console.log("✅ Connexion réussie. Ouverture du template...");
     await page.goto(templateUrl);
