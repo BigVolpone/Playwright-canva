@@ -1,9 +1,5 @@
-require('dotenv').config();
-const express = require('express');
+const fs = require('fs');
 const { chromium } = require('playwright');
-const app = express();
-
-app.use(express.json());
 
 app.post('/run', async (req, res) => {
   const { template, citations } = req.body;
@@ -21,18 +17,23 @@ app.post('/run', async (req, res) => {
   if (!Array.isArray(citations) || citations.length === 0)
     return res.status(400).send('❌ Aucune citation fournie');
 
+  // Check if state.json exists
+  const storageStatePath = 'state.json';
+  const storageStateExists = fs.existsSync(storageStatePath);
+
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ storageState: 'state.json' });
+  const context = await browser.newContext(
+    storageStateExists ? { storageState: storageStatePath } : {}
+  );
   const page = await context.newPage();
 
   try {
     console.log('🌐 Connexion à Canva…');
     await page.goto(templateUrl, { timeout: 60000 });
-    await page.waitForSelector('text=Inscrire'); // Attendre le bouton
-    console.log('✅ Page chargée');
 
-    // Gérer la connexion uniquement si nécessaire
-    if (!context.storageState().cookies.length) {
+    // If state.json is missing, perform login
+    if (!storageStateExists) {
+      console.log('🔑 Aucun état de session trouvé, connexion requise');
       await page.click('text=Inscrire');
       await page.waitForSelector('text=Continuer avec un e-mail');
       await page.click('text=Continuer avec un e-mail');
@@ -43,8 +44,9 @@ app.post('/run', async (req, res) => {
       await page.click('text=Connexion');
       console.log('✅ Connexion réussie');
 
-      // Sauvegarder l'état de session
-      await context.storageState({ path: 'state.json' });
+      // Save the session state
+      await context.storageState({ path: storageStatePath });
+      console.log('✅ État de session sauvegardé');
     }
 
     // Saisie des citations
@@ -64,6 +66,3 @@ app.post('/run', async (req, res) => {
     await browser.close();
   }
 });
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
