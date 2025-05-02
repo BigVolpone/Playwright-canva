@@ -1,27 +1,26 @@
-// index.js
 require('dotenv').config();
 const express = require('express');
 const { chromium } = require('playwright');
-const app = express();
 
+const app = express();
 app.use(express.json());
+
+const PORT = process.env.PORT || 8080;
 
 app.post('/run', async (req, res) => {
   const { template, citations } = req.body;
+  console.log(`📩 Requête reçue avec template: ${template}`);
+  console.log('🧠 Citations reçues:', citations);
 
   const templates = {
     A: process.env.TEMPLATE_A_URL,
     B: process.env.TEMPLATE_B_URL,
-    C: process.env.TEMPLATE_C_URL
-    // Tu peux ajouter plus de templates ici si besoin
+    C: process.env.TEMPLATE_C_URL,
   };
 
-  const templateUrl = templates[template];
-  if (!templateUrl) {
-    return res.status(400).send('❌ Template inconnu');
-  }
-  if (!Array.isArray(citations) || citations.length === 0) {
-    return res.status(400).send('❌ Aucune citation fournie');
+  if (!templates[template]) {
+    console.error('❌ Template inconnu.');
+    return res.status(400).send('Template inconnu');
   }
 
   const browser = await chromium.launch({ headless: true });
@@ -29,52 +28,46 @@ app.post('/run', async (req, res) => {
   const page = await context.newPage();
 
   try {
-    console.log(`📩 Requête reçue avec template: ${template}`);
-    console.log(`🧠 Citations reçues:`, citations);
-
+    console.log('🌐 Connexion à Canva...');
     await page.goto('https://www.canva.com/fr_fr/', { timeout: 60000 });
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
 
-    await page.click('text=Se connecter');
-    await page.waitForTimeout(2000);
+    await page.click('text=Se connecter', { timeout: 30000 });
+    await page.waitForTimeout(1000);
 
-    await page.click('text=Continuer avec un e-mail');
-    await page.waitForTimeout(2000);
+    await page.click('text=Continuer avec un e-mail', { timeout: 30000 });
+    await page.waitForTimeout(1000);
 
-    await page.fill('input[type="email"]', process.env.CANVA_EMAIL);
-    await page.click('button:has-text("Continuer")');
-    await page.waitForTimeout(2000);
+    await page.fill('input[name="email"]', process.env.CANVA_EMAIL);
+    await page.click('text=Continuer');
+    await page.waitForTimeout(1000);
 
-    await page.fill('input[type="password"]', process.env.CANVA_PASSWORD);
-    await page.click('button:has-text("Connexion")');
-    await page.waitForTimeout(5000);
+    await page.fill('input[name="password"]', process.env.CANVA_PASSWORD);
+    await page.click('text=Connexion');
 
-    await page.goto(templateUrl, { timeout: 60000 });
-    await page.waitForTimeout(5000);
+    await page.waitForNavigation({ timeout: 60000 });
+    console.log('✅ Connexion réussie');
 
+    // Aller au modèle Canva directement
+    await page.goto(templates[template], { timeout: 60000 });
+    await page.waitForTimeout(5000); // Attente chargement complet du template
+
+    // Injection des citations (si éléments prévisibles, à améliorer ensuite)
     for (let i = 0; i < citations.length; i++) {
-      await page.click('[data-testid="text-box"]');
-      await page.keyboard.type(citations[i]);
-      await page.keyboard.press('Tab');
-      await page.waitForTimeout(1000);
+      const textboxSelector = `div[contenteditable="true"] >> nth=${i}`;
+      await page.fill(textboxSelector, citations[i]);
+      await page.waitForTimeout(500);
     }
 
-    await page.click('button:has-text("Partager")');
-    await page.waitForTimeout(1000);
-    await page.click('button:has-text("Télécharger")');
-    await page.waitForTimeout(1000);
-    await page.click('button:has-text("Télécharger")');
-    await page.waitForTimeout(10000);
-
-    res.send('✅ Citations appliquées et vidéo exportée');
-  } catch (err) {
-    console.error('❌ Erreur :', err);
-    res.status(500).send('Erreur lors de l\'exécution du script.');
-  } finally {
+    console.log('🎨 Citations ajoutées avec succès.');
     await browser.close();
+    res.status(200).send('Template mis à jour avec succès');
+  } catch (error) {
+    console.error('❌ Erreur :', error);
+    await browser.close();
+    res.status(500).send("Erreur lors de l'exécution du script.");
   }
 });
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur actif sur le port ${PORT}`);
+});
