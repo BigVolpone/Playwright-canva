@@ -40,8 +40,8 @@ app.post('/run', async (req, res) => {
     if (!storageStateExists) {
       console.log('🔑 Aucun état de session trouvé, connexion requise');
 
-      // Sélecteur corrigé pour le bouton "S'inscrire"
-      await page.click('text="S\'inscrire"', { timeout: 60000 });
+      // Sélecteur basé sur le rôle "menuitem"
+      await page.click('[role="menuitem"]', { timeout: 60000 });
 
       await page.waitForSelector('text=Continuer avec un e-mail', { timeout: 60000 });
       await page.click('text=Continuer avec un e-mail');
