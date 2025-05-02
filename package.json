@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js", // Ajout pour le développement avec rechargement automatique
+    "dev": "nodemon index.js",
     "postinstall": "npx playwright install --with-deps",
-    "test": "echo \"Error: no test specified\" && exit 1" // Placeholder pour les tests
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "dotenv": "^16.5.0",
@@ -15,10 +15,10 @@
     "playwright": "^1.43.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22" // Ajout de nodemon pour améliorer le flux de développement
+    "nodemon": "^2.0.22"
   },
   "engines": {
-    "node": ">=14.0.0" // Spécification de la version minimale de Node.js
+    "node": ">=14.0.0"
   },
   "keywords": [
     "playwright",
