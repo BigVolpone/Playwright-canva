@@ -28,18 +28,16 @@ app.post('/run', async (req, res) => {
   const context = await browser.newContext(
     storageStateExists ? { storageState: storageStatePath } : {}
   );
+
+  // Masquer les automatisations (corrigé pour utiliser le contexte)
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    window.navigator.chrome = {};
+  });
+
   const page = await context.newPage();
 
   try {
-    // Masquer les automatisations
-    await page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => false });
-      window.navigator.chrome = {};
-    });
-
-    // Définir un User-Agent valide
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36');
-
     // Timeout global
     page.setDefaultTimeout(60000);
 
