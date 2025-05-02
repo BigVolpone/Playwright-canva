@@ -37,10 +37,24 @@ app.post('/run', async (req, res) => {
     console.log('🌐 Connexion à Canva…');
     await page.goto(templateUrl, { timeout: 60000 });
 
+    // Attendre que la page soit complètement chargée
+    await page.waitForLoadState('networkidle');
+
+    // Gérer la pop-up "Jump back in!" si elle apparaît
+    if (await page.locator(`button:has-text("${process.env.GOOGLE_EMAIL}")`).isVisible()) {
+      console.log('ℹ️ Pop-up "Jump back in!" détectée, ouverture avec l\'adresse e-mail…');
+      await page.click(`button:has-text("${process.env.GOOGLE_EMAIL}")`);
+    }
+
+    // Gérer les pop-ups de cookies
+    if (await page.locator('button:has-text("Accepter les cookies")').isVisible()) {
+      await page.click('button:has-text("Accepter les cookies")');
+    }
+
     if (!storageStateExists) {
       console.log('🔑 Aucun état de session trouvé, connexion requise');
 
-      // Sélecteur basé sur le rôle "menuitem"
+      // Utiliser un sélecteur précis pour le bouton "S'inscrire"
       await page.click('[role="menuitem"]', { timeout: 60000 });
 
       await page.waitForSelector('text=Continuer avec un e-mail', { timeout: 60000 });
@@ -68,6 +82,9 @@ app.post('/run', async (req, res) => {
     res.send('✅ Citations ajoutées au template Canva');
   } catch (err) {
     console.error('❌ Erreur Playwright :', err);
+
+    // Capturer une trace
+    await context.tracing.stop({ path: 'trace.zip' });
     res.status(500).send('Erreur d’exécution du script');
   } finally {
     await browser.close();
